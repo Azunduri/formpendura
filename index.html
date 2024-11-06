@@ -131,10 +131,13 @@
 
     <div class="form-group">
         <label for="cpf">CPF:</label>
-        <input type="text" id="cpf" onblur="buscarDadosCPF()" placeholder="Digite seu CPF">
+        <input type="text" id="cpf" oninput="aplicarMascaraCPF(this)" onblur="buscarDadosCPF()" placeholder="Digite seu CPF">
         <div id="dados-usuario" class="user-data">
             <p><strong>Nome:</strong> <span id="nome"></span></p>
             <p><strong>Loja:</strong> <span id="loja"></span></p>
+            <p><strong>cargo:</strong> <span id="cargo"></span></p>
+            <p><strong>perfumaria:</strong> <span id="perfumaria"></span></p>
+            <p><strong>data de liberacao:</strong> <span id="dataliberacao"></span></p>
         </div>
     </div>
 
@@ -197,9 +200,16 @@
 </footer>
 
 <script>
+        function aplicarMascaraCPF(input) {
+        let cpf = input.value.replace(/\D/g, ""); // Remove caracteres não numéricos
+        cpf = cpf.replace(/^(\d{3})(\d)/, "$1.$2");
+        cpf = cpf.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
+        cpf = cpf.replace(/\.(\d{3})(\d)/, ".$1-$2");
+        input.value = cpf;
+    }
     async function buscarDadosCPF() {
         const cpf = document.getElementById('cpf').value;
-        const url = 'https://script.google.com/macros/s/AKfycbzuVBfxd4Ac_tyrOFiZy71UTEQs0miiV41to-eqi0ifprDfbAf8u0FdnACPnMsXd4CQgw/exec';
+        const url = 'https://script.google.com/macros/s/AKfycbwG_GEZfzYBSDcGFLshq8_XDKxuEt7qSYh2ILGjRU7HewqkaD1JR2KmWJdLqJxW6ePL6A/exec';
         try {
             const response = await fetch(`${url}?cpf=${cpf}`);
             const data = await response.json();
@@ -210,6 +220,14 @@
             } else {
                 document.getElementById('nome').innerText = data.nome || 'Não encontrado';
                 document.getElementById('loja').innerText = data.loja || 'Não encontrado';
+                document.getElementById('cargo').innerText = data.cargo || 'Não encontrado';
+                document.getElementById('perfumaria').innerText = data.perfumaria || 'Não encontrado';
+                document.getElementById('dataliberacao').innerText = data.dataliberacao || 'Não encontrado';
+                let dataLiberacao = new Date(data.dataliberacao); // Converte a string de data em um objeto Date
+document.getElementById('dataliberacao').innerText = 
+    !isNaN(dataLiberacao) ? 
+    dataLiberacao.toLocaleDateString('pt-BR') : // Formata a data para o formato brasileiro
+    'Não encontrado';
                 document.getElementById('dados-usuario').style.display = 'block';
             }
         } catch (error) {
@@ -219,14 +237,14 @@
 
     async function buscarDadosProduto(input) {
     const codigoProduto = input.value;
-    const url = 'https://script.google.com/macros/s/AKfycbzuVBfxd4Ac_tyrOFiZy71UTEQs0miiV41to-eqi0ifprDfbAf8u0FdnACPnMsXd4CQgw/exec';
+    const url = 'https://script.google.com/macros/s/AKfycbzwrNi4-jiJiIxujM1vBkfhBOuz8VF6KTNLqAiXfvGDEZAHuAE7UYxRq8QcBHy0FG4_gA/exec';
     try {
         const response = await fetch(`${url}?codigo=${codigoProduto}`);
         const data = await response.json();
 
         if (data.error) {
             alert(data.error);
-            input.parentElement.querySelector('.valor-bruto').innerText = '0,00';
+            input.parentElement.querySelector('.valor-bruto').innerText = formatarMoeda(data.valorBruto);
             input.parentElement.querySelector('.valor-desconto').innerText = '0,00';
         } else {
             input.parentElement.querySelector('.valor-bruto').innerText = formatarMoeda(data.valorBruto);
@@ -243,6 +261,9 @@
         return (valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
     }
 
+    function formatarMoeda(valor) {
+        return (valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
+    }
     function atualizarValores(input) {
     const container = input.parentElement;
     const valorBruto = parseFloat(container.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
@@ -301,11 +322,12 @@ function atualizarTotais() {
         atualizarTotais();
     }
 
-    async function enviarDadosEgerarPDF() { 
-    const cpf = document.getElementById('cpf').value; 
-    const nome = document.getElementById('nome').innerText; 
-    const loja = document.getElementById('loja').innerText; 
-    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão'; // Opção padrão
+    async function enviarDadosEgerarPDF() {
+    const cpf = document.getElementById('cpf').value.trim();
+    const nome = document.getElementById('nome').innerText;
+    const loja = document.getElementById('loja').innerText;
+    const cargo = document.getElementById('cargo').innerText;
+    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão'; 
     const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
 
     const produtos = [];
@@ -313,20 +335,66 @@ function atualizarTotais() {
     const totalDescontode40 = [];
 
     document.querySelectorAll('.crud-section').forEach(section => {
-        const codigoProduto = section.querySelector('.codigo-produto').value;
-        const quantidadeProduto = section.querySelector('.quantidade-produto').value;
+        const codigoProduto = section.querySelector('.codigo-produto').value.trim();
+        const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
         const valorDesconto = section.querySelector('.valor-desconto').innerText.replace(',', '.');
 
-        produtos.push(codigoProduto); 
-        quantidade.push(quantidadeProduto); 
-        totalDescontode40.push(parseFloat(valorDesconto)); 
+        // Verificar se o código do produto e a quantidade foram preenchidos
+        if (!codigoProduto) {
+            alert("Por favor, preencha o código do produto.");
+            return; // Não envia os dados
+        }
+    // Verificar se a opção selecionada é "brinde"
+    if (descontoSelecionado === 'brinde') {     
+        // Verificar se o valor ultrapassou o limite de R$200
+        const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
+        if (valorBruto * parseInt(quantidadeProduto) > 50) {
+            alert("Um ou mais produtos ultrapassaram o limite de R$200,00! Dados não enviados.");
+            return; // Evitar envio
+        }
+    }
+
+        // Adicionar os dados aos arrays
+        produtos.push(codigoProduto);
+        quantidade.push(quantidadeProduto);
+        totalDescontode40.push(valorDesconto);
     });
 
+    // Se algum erro for detectado, não prosseguir
+    if (produtos.length === 0) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+    }
+
+        // Verificar se a opção "Brinde" foi selecionada e o total bruto ultrapassou o limite
+        const totalBruto = parseFloat(document.getElementById("total-bruto").innerText.replace('R$', '').replace(',', '.'));
+    const descontoSelecionado = document.querySelector('input[name="opcao"]:checked')?.value;
+
+    // Verifica se o CPF foi preenchido
+    if (!cpf) {
+        alert("Por favor, preencha o CPF.");
+        return; // Não envia os dados
+    }
+
+    const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
+    const limiteDescontoAssistente = 1000; // Defina o limite desejado
+    const limiteDescontoGerente = 100; // Defina o limite desejado
+
+    // Verifique se o cargo é assistente e se o total de desconto ultrapassa o limite
+    if (cargo.toLowerCase() === 'assistente' && parseFloat(totalDesconto) > limiteDescontoAssistente) {
+        alert(`O total de desconto não pode ultrapassar de R$ ${limiteDescontoAssistente.toFixed(2)} para o cargo de assistente.`);
+        return; // Não envia os dados
+    }
+    if (cargo.toLowerCase() === 'gerente' && parseFloat(totalDesconto) > limiteDescontoGerente) {
+        alert(`O total de desconto não pode ultrapassar de R$ ${limiteDescontoGerente.toFixed(2)} para o cargo de gerente.`);
+        return; // Não envia os dados
+    }
     const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
     const dataParaEnviar = {
         cpf,
         nome,
+        cargo,
         produtos: produtos.join(', '), 
         quantidade: quantidade.join(', '), 
         totalDescontode40: totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2).replace('.', ','), 
@@ -350,7 +418,7 @@ function atualizarTotais() {
             alert("Dados registrados com sucesso!");
 
             // Após o envio dos dados, gerar o PDF
-            gerarPDFDocumento(cpf, nome, loja, produtos, quantidade, totalDescontode40, tipoOpcao);
+            gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao);
         } else {
             const errorData = await response.json(); // Para obter detalhes do erro
             alert("Erro ao registrar os dados: " + (errorData.message || "Erro desconhecido"));
@@ -366,72 +434,154 @@ function formatarReais(valor) {
     return valor.replace('.', ',');
 }
 
-function gerarPDFDocumento(cpf, nome, loja, produtos, quantidade, totalDescontode40, tipoOpcao) {
-    const { jsPDF } = window.jspdf; // Acessar a biblioteca jsPDF
+async function enviarDadosEgerarPDF() {
+    const cpf = document.getElementById('cpf').value.trim();
+    const nome = document.getElementById('nome').innerText;
+    const loja = document.getElementById('loja').innerText;
+    const cargo = document.getElementById('cargo').innerText;
+    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão'; 
+    const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
 
-    // Criar uma nova instância do jsPDF
+    const produtos = [];
+    const quantidade = [];
+    const totalDescontode40 = [];
+    const descontoSelecionado = tipoOpcao; // Definido antes da verificação
+
+    document.querySelectorAll('.crud-section').forEach(section => {
+        const codigoProduto = section.querySelector('.codigo-produto').value.trim();
+        const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
+        const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.'));
+
+        if (!codigoProduto) {
+            alert("Por favor, preencha o código do produto.");
+            return;
+        }
+
+        if (descontoSelecionado === 'brinde') {
+            const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
+            if (valorBruto * parseInt(quantidadeProduto) > 200) {
+                alert("Um ou mais produtos ultrapassaram o limite de R$50,00! Dados não enviados.");
+                return;
+            }
+        }
+
+        produtos.push(codigoProduto);
+        quantidade.push(quantidadeProduto);
+        totalDescontode40.push(valorDesconto);
+    });
+
+    if (produtos.length === 0) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+    }
+
+    const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
+    const limiteDescontoAssistente = 1000;
+    const limiteDescontoGerente = 30;
+
+    if (cargo.toLowerCase() === 'assistente' && parseFloat(totalDesconto) > limiteDescontoAssistente) {
+        alert(`O total de desconto não pode ultrapassar R$ ${limiteDescontoAssistente.toFixed(2)} para assistente.`);
+        return;
+    }
+    if (cargo.toLowerCase() === 'gerente' && parseFloat(totalDesconto) > limiteDescontoGerente) {
+        alert(`O total de desconto não pode ultrapassar R$ ${limiteDescontoGerente.toFixed(2)} para gerente.`);
+        return;
+    }
+
+    const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+
+    const dataParaEnviar = {
+        cpf,
+        nome,
+        cargo,
+        produtos: produtos.join(', '),
+        quantidade: quantidade.join(', '),
+        totalDescontode40: totalDesconto.replace('.', ','),
+        dataEnvio,
+        loja,
+        tipoOpcao,
+        mes
+    };
+
+    try {
+        const sheetMonkeyUrl = 'https://api.sheetmonkey.io/form/47VnTaUQ6XX3P2nRrm34rs';
+        const response = await fetch(sheetMonkeyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataParaEnviar)
+        });
+
+        if (response.ok) {
+            alert("Dados registrados com sucesso!");
+            gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao);
+        } else {
+            const errorData = await response.json();
+            alert("Erro ao registrar os dados: " + (errorData.message || "Erro desconhecido"));
+        }
+    } catch (error) {
+        console.error("Erro ao enviar os dados:", error);
+        alert("Erro na conexão com o servidor: " + error.message);
+    }
+}
+
+function formatarReais(valor) {
+    return valor.replace('.', ',');
+}
+
+function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao) {
+    const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Adicionar um título ao PDF
     doc.setFontSize(18);
     doc.text("Formulário de Pendura", 14, 22);
 
-    // Adicionar dados do CPF
     doc.setFontSize(12);
     doc.text(`CPF: ${cpf}`, 14, 40);
-
-    // Adicionar dados do usuário
     doc.text(`Nome: ${nome}`, 14, 50);
     doc.text(`Loja: ${loja}`, 14, 60);
+    doc.text(`Cargo: ${cargo}`, 14, 70);
 
-    // Adicionar dados dos produtos
-    let yOffset = 70; // Offset para a próxima linha
+    let yOffset = 80;
     produtos.forEach((codigoProduto, index) => {
         const quantidadeProduto = quantidade[index];
         const valorDesconto = totalDescontode40[index].toFixed(2).replace('.', ',');
 
         doc.text(`Produto: ${codigoProduto}, Quantidade: ${quantidadeProduto}, Valor com Desconto: R$ ${valorDesconto}`, 14, yOffset);
-        yOffset += 10; // Aumentar o offset para a próxima linha
+        yOffset += 10;
     });
 
-    // Captura a opção selecionada corretamente
     const valorDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
     let declaracaoTexto;
 
-    // Criar a declaração com base na opção selecionada
     if (tipoOpcao === 'desconto') {
         declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, autorizo o desconto em folha no valor total de R$ ${formatarReais(valorDesconto)}.`;
-    } else if (tipoOpcao === 'aniversario') {
+    } else if (tipoOpcao === 'brinde') {
         declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, declaro o recebimento do meu brinde de aniversário no valor total de R$ ${formatarReais(valorDesconto)}.`;
     }
 
-    // Adicionar a declaração ao PDF
-    const textoDeclaracao = doc.splitTextToSize(declaracaoTexto, 190); // Ajustar a largura conforme necessário
+    const textoDeclaracao = doc.splitTextToSize(declaracaoTexto, 190);
     textoDeclaracao.forEach((linha) => {
         doc.text(linha, 10, yOffset);
-        yOffset += 10; // Aumenta a coordenada y para a próxima linha
+        yOffset += 10;
     });
 
-    // Adicionar totais
-    const totalBruto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2).replace('.', ',');
+    const totalBruto = valorDesconto.replace('.', ',');
     doc.text(`Total Bruto: R$ ${totalBruto}`, 14, yOffset);
     yOffset += 10;
     doc.text(`Total com Desconto: R$ ${formatarReais(valorDesconto)}`, 14, yOffset);
     yOffset += 10;
 
-    // Adiciona a linha de assinatura e a data
-    const linhaAssinaturaY = yOffset + 20; // Define a coordenada y para a linha de assinatura
-    doc.text("____________________________", 10, linhaAssinaturaY); // Linha de assinatura
-    doc.text(`Assinatura: ${nome}`, 10, linhaAssinaturaY + 5); // Nome do assinante
+    const linhaAssinaturaY = yOffset + 20;
+    doc.text("____________________________", 10, linhaAssinaturaY);
+    doc.text(`Assinatura: ${nome}`, 10, linhaAssinaturaY + 5);
 
-    // Captura a data e horário atuais
     const dataAtual = new Date();
-    const dataFormatada = dataAtual.toLocaleString('pt-BR', { timeZone: 'UTC' });
-    doc.text(`Data e Horário: ${dataFormatada}`, 10, linhaAssinaturaY + 15); // Data e horário
+    const dataFormatada = dataAtual.toLocaleString('pt-BR');
+    doc.text(`Data e Horário: ${dataFormatada}`, 10, linhaAssinaturaY + 15);
 
-    // Salvar o PDF
-    doc.save('formulario_pendura.pdf');
+    doc.save('formulario_pendura_' + nome.replace(/\s+/g, '_') + '.pdf');
 }
+
 </script>
 </body>
 </html>
