@@ -362,6 +362,7 @@ function atualizarTotais() {
         atualizarTotais();
     }
 
+
 // Defina os limites de desconto para cada cargo em um objeto
 const limitesDesconto = {
     assistente: 212,
@@ -375,36 +376,56 @@ const limitesDesconto = {
     segurança: 212,
     back: 212,
     motorista: 212,
-    funcionario: 212
+    funcionario: 212 // Limite para "Funcionario", com "f" minúsculo
 };
 
-// Verifica o limite de desconto com base no cargo
+// Função para verificar o limite de desconto
 function verificarLimiteDesconto(cargo, totalDesconto) {
-    if (limitesDesconto[cargo.toLowerCase()] !== undefined) {
-        const limiteCargo = limitesDesconto[cargo.toLowerCase()];
-        if (parseFloat(totalDesconto) > limiteCargo) {
+    const cargoTrimmed = cargo.trim();  // Remove espaços extras
+    const cargoLower = cargoTrimmed.toLowerCase();  // Padronizando para minúsculas
+
+    console.log('Cargo informado:', cargo);  // Verifique o valor original
+    console.log('Cargo com espaços removidos:', cargoTrimmed);  // Verifique o valor sem espaços extras
+    console.log('Cargo em minúsculas:', cargoLower);  // Verifique o valor em minúsculas
+
+    // Verifica se o cargo existe no objeto de limites
+    if (limitesDesconto[cargoLower] !== undefined) {
+        const limiteCargo = limitesDesconto[cargoLower];
+        const desconto = parseFloat(totalDesconto);
+        
+        // Verifica se o valor de desconto é um número válido
+        if (isNaN(desconto)) {
+            alert("O valor de desconto informado não é válido.");
+            return false;
+        }
+
+        // Verifica se o desconto não ultrapassa o limite para o cargo
+        if (desconto > limiteCargo) {
             alert(`O total de desconto não pode ultrapassar R$ ${limiteCargo.toFixed(2)} para o cargo de ${cargo}.`);
-            return false; // Não envia os dados
+            return false;
+        } else {
+            alert("Desconto validado e enviado com sucesso.");
         }
     } else {
-        alert(`Limete do cargo ${cargo} não pode ultrapassar o limite de desconto definido.`);
-        return false; // Não envia os dados se o cargo não for encontrado
+        console.log('Cargo não encontrado:', cargoLower);  // Verificação de cargo não encontrado
+        alert(`Limite para o cargo "${cargo}" não está definido. Verifique os dados ou entre em contato com o suporte.`);
+        return false;
     }
     return true;
 }
-
 async function enviarDadosEgerarPDF() {
     const cpf = document.getElementById('cpf').value.trim();
     const nome = document.getElementById('nome').innerText;
     const loja = document.getElementById('loja').innerText;
     const cargo = document.getElementById('cargo').innerText;
-    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão'; 
+    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão';
     const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
 
     const produtos = [];
     const quantidade = [];
     const totalDescontode40 = [];
 
+    // Percorre cada produto inserido
     document.querySelectorAll('.crud-section').forEach(section => {
         const codigoProduto = section.querySelector('.codigo-produto').value.trim();
         const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
@@ -415,6 +436,7 @@ async function enviarDadosEgerarPDF() {
             return;
         }
 
+        // Verificação para 'brinde'
         if (tipoOpcao === 'brinde') {
             const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
             if (valorBruto * parseInt(quantidadeProduto) > 200) {
@@ -433,16 +455,21 @@ async function enviarDadosEgerarPDF() {
         return;
     }
 
+    // Calculando o total de desconto
     const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
 
-    // Verificação do limite de desconto
+    // Verificando o limite de desconto
     if (!verificarLimiteDesconto(cargo, totalDesconto)) {
-        // Interrompe o envio se o desconto ultrapassar o limite
-        return;
+        return; // Se o limite for ultrapassado, não envia os dados
     }
 
-    const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    // Se a verificação passar, continue com o envio dos dados
+    // Código para enviar dados e gerar PDF...
 
+    console.log("Desconto total:", totalDesconto); // Exibir para verificar
+
+    // Monta o objeto com os dados a serem enviados
+    const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
     const dataParaEnviar = {
         cpf,
         nome,
@@ -456,6 +483,7 @@ async function enviarDadosEgerarPDF() {
         mes
     };
 
+    // Envio dos dados para a API
     try {
         const sheetMonkeyUrl = 'https://api.sheetmonkey.io/form/47VnTaUQ6XX3P2nRrm34rs';
         const response = await fetch(sheetMonkeyUrl, {
@@ -475,10 +503,6 @@ async function enviarDadosEgerarPDF() {
         console.error("Erro ao enviar os dados:", error);
         alert("Erro na conexão com o servidor: " + error.message);
     }
-}
-
-function formatarReais(valor) {
-    return valor.replace('.', ',');
 }
 
 function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao) {
@@ -535,6 +559,9 @@ function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDe
     doc.save('formulario_pendura_' + nome.replace(/\s+/g, '_') + '.pdf');
 }
 
+function formatarReais(valor) {
+    return valor.replace('.', ',');
+}
 </script>
 </body>
 </html>
