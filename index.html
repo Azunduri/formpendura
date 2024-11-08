@@ -439,7 +439,7 @@ async function enviarDadosEgerarPDF() {
         // Verificação para 'brinde'
         if (tipoOpcao === 'brinde') {
             const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
-            if (valorBruto * parseInt(quantidadeProduto) > 200) {
+            if (valorBruto * parseInt(quantidadeProduto) > 230) {
                 alert("Um ou mais produtos ultrapassaram o limite de R$200,00 para brinde! Dados não enviados.");
                 return;
             }
