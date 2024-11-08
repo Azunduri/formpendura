@@ -121,6 +121,16 @@
             background-color: #dc3545; 
             margin-left: 10px; 
         }
+        .quantidade-produto::-webkit-outer-spin-button,
+        .quantidade-produto::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+        }
+
+        .quantidade-produto[type=number] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -181,7 +191,7 @@
             <label>Código do Produto: </label>
             <input type="text" class="codigo-produto" onblur="buscarDadosProduto(this)">
             <label>Quantidade: </label>
-            <input type="number" class="quantidade-produto" min="1" value="1" oninput="atualizarValores(this)">
+            <input type="number" class="quantidade-produto"value="1" oninput="atualizarValores(this)">
             <p><strong>Valor Bruto:</strong> R$ <span class="valor-bruto">0,00</span></p>
             <p><strong>Valor com Desconto (40%):</strong> R$ <span class="valor-desconto">0,00</span></p>
             <button type="button" class="delete-btn" onclick="removerCRUD(this)">🗑️</button>
@@ -261,42 +271,72 @@ document.getElementById('dataliberacao').innerText =
         return (valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
     }
 
-    function formatarMoeda(valor) {
-        return (valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
-    }
     function atualizarValores(input) {
     const container = input.parentElement;
-    const valorBruto = parseFloat(container.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
-    const quantidade = parseInt(container.querySelector('.quantidade-produto').value) || 0;
+
+    // Obtendo o valor unitário bruto (ex: R$100,00) e garantindo que seja numérico
+    const valorUnitarioBruto = parseFloat(container.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
+    // Verifique se o valor unitário está correto
+    console.log("Valor Unitário Bruto:", valorUnitarioBruto);
+
+    // Obtendo a quantidade do produto e garantindo que seja um número
+    const quantidade = parseInt(container.querySelector('.quantidade-produto').value.trim()) || 0;
+    // Verifique se a quantidade está correta
+    console.log("Quantidade:", quantidade);
+
+    // Cálculo do valor bruto total (valor unitário * quantidade)
+    let valorBrutoTotal = valorUnitarioBruto * quantidade;
+    console.log("Valor Bruto Total:", valorBrutoTotal);
+
+    // Verificando qual tipo de desconto foi selecionado
     const descontoSelecionado = document.querySelector('input[name="opcao"]:checked').value;
 
     let valorComDesconto;
-
-    // Lógica para calcular o valor com desconto
+    // Lógica para aplicar desconto ou não
     if (descontoSelecionado === 'desconto') {
-        valorComDesconto = valorBruto * quantidade * 0.6; // Aplicando desconto de 40%
+        valorComDesconto = valorBrutoTotal * 0.6; // Aplicando 40% de desconto
     } else if (descontoSelecionado === 'brinde') {
-        valorComDesconto = 0; // Valor zerado para brinde
+        valorComDesconto = 0; // Zero para brinde
     } else {
-        valorComDesconto = valorBruto * quantidade; // Sem desconto padrão
+        valorComDesconto = valorBrutoTotal; // Sem desconto
     }
 
-    // Atualizando o valor com desconto e garantindo que é formatado
+    // Atualizando o valor bruto total na interface
+    container.querySelector('.valor-bruto').innerText = formatarMoeda(valorBrutoTotal);
+    // Atualizando o valor com desconto na interface
     container.querySelector('.valor-desconto').innerText = formatarMoeda(valorComDesconto);
-    atualizarTotais(); // Atualiza os totais ao final
+
+    // Atualiza os totais de todos os produtos
+    atualizarTotais();
+}
+
+// Função para formatar os valores monetários
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
+}
+
+// Função para formatar os valores monetários
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
 }
 
 function atualizarTotais() {
     let totalBruto = 0;
     let totalDesconto = 0;
+
+    // Coletando todos os containers de produto
     const sections = document.querySelectorAll('.crud-section');
+
+    // Iterando por cada produto
     sections.forEach(section => {
         const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
         const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
+
         totalBruto += valorBruto;
         totalDesconto += valorDesconto;
     });
 
+    // Exibindo os totais na interface
     document.getElementById('total-bruto').innerText = formatarMoeda(totalBruto);
     document.getElementById('total-desconto').innerText = formatarMoeda(totalDesconto);
 }
@@ -322,116 +362,35 @@ function atualizarTotais() {
         atualizarTotais();
     }
 
-    async function enviarDadosEgerarPDF() {
-    const cpf = document.getElementById('cpf').value.trim();
-    const nome = document.getElementById('nome').innerText;
-    const loja = document.getElementById('loja').innerText;
-    const cargo = document.getElementById('cargo').innerText;
-    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão'; 
-    const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
+// Defina os limites de desconto para cada cargo em um objeto
+const limitesDesconto = {
+    assistente: 212,
+    gerente: 319,
+    supervisor: 212,
+    consultor: 212,
+    caixa: 212,
+    promotor: 212,
+    atendente: 212,
+    multiplicador: 212,
+    segurança: 212,
+    back: 212,
+    motorista: 212,
+    funcionario: 212
+};
 
-    const produtos = [];
-    const quantidade = [];
-    const totalDescontode40 = [];
-
-    document.querySelectorAll('.crud-section').forEach(section => {
-        const codigoProduto = section.querySelector('.codigo-produto').value.trim();
-        const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
-        const valorDesconto = section.querySelector('.valor-desconto').innerText.replace(',', '.');
-
-        // Verificar se o código do produto e a quantidade foram preenchidos
-        if (!codigoProduto) {
-            alert("Por favor, preencha o código do produto.");
-            return; // Não envia os dados
+// Verifica o limite de desconto com base no cargo
+function verificarLimiteDesconto(cargo, totalDesconto) {
+    if (limitesDesconto[cargo.toLowerCase()] !== undefined) {
+        const limiteCargo = limitesDesconto[cargo.toLowerCase()];
+        if (parseFloat(totalDesconto) > limiteCargo) {
+            alert(`O total de desconto não pode ultrapassar R$ ${limiteCargo.toFixed(2)} para o cargo de ${cargo}.`);
+            return false; // Não envia os dados
         }
-    // Verificar se a opção selecionada é "brinde"
-    if (descontoSelecionado === 'brinde') {     
-        // Verificar se o valor ultrapassou o limite de R$200
-        const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
-        if (valorBruto * parseInt(quantidadeProduto) > 50) {
-            alert("Um ou mais produtos ultrapassaram o limite de R$200,00! Dados não enviados.");
-            return; // Evitar envio
-        }
+    } else {
+        alert(`Limete do cargo ${cargo} não pode ultrapassar o limite de desconto definido.`);
+        return false; // Não envia os dados se o cargo não for encontrado
     }
-
-        // Adicionar os dados aos arrays
-        produtos.push(codigoProduto);
-        quantidade.push(quantidadeProduto);
-        totalDescontode40.push(valorDesconto);
-    });
-
-    // Se algum erro for detectado, não prosseguir
-    if (produtos.length === 0) {
-        alert("Por favor, preencha todos os campos.");
-        return;
-    }
-
-        // Verificar se a opção "Brinde" foi selecionada e o total bruto ultrapassou o limite
-        const totalBruto = parseFloat(document.getElementById("total-bruto").innerText.replace('R$', '').replace(',', '.'));
-    const descontoSelecionado = document.querySelector('input[name="opcao"]:checked')?.value;
-
-    // Verifica se o CPF foi preenchido
-    if (!cpf) {
-        alert("Por favor, preencha o CPF.");
-        return; // Não envia os dados
-    }
-
-    const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
-    const limiteDescontoAssistente = 1000; // Defina o limite desejado
-    const limiteDescontoGerente = 100; // Defina o limite desejado
-
-    // Verifique se o cargo é assistente e se o total de desconto ultrapassa o limite
-    if (cargo.toLowerCase() === 'assistente' && parseFloat(totalDesconto) > limiteDescontoAssistente) {
-        alert(`O total de desconto não pode ultrapassar de R$ ${limiteDescontoAssistente.toFixed(2)} para o cargo de assistente.`);
-        return; // Não envia os dados
-    }
-    if (cargo.toLowerCase() === 'gerente' && parseFloat(totalDesconto) > limiteDescontoGerente) {
-        alert(`O total de desconto não pode ultrapassar de R$ ${limiteDescontoGerente.toFixed(2)} para o cargo de gerente.`);
-        return; // Não envia os dados
-    }
-    const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-
-    const dataParaEnviar = {
-        cpf,
-        nome,
-        cargo,
-        produtos: produtos.join(', '), 
-        quantidade: quantidade.join(', '), 
-        totalDescontode40: totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2).replace('.', ','), 
-        dataEnvio,
-        loja,
-        tipoOpcao,
-        mes
-    };
-
-    // Envio para o SheetMonkey
-    try {
-        const sheetMonkeyUrl = 'https://api.sheetmonkey.io/form/47VnTaUQ6XX3P2nRrm34rs';
-        const response = await fetch(sheetMonkeyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dataParaEnviar)
-        });
-
-        // Verifica se a resposta é bem-sucedida
-        if (response.ok) {
-            alert("Dados registrados com sucesso!");
-
-            // Após o envio dos dados, gerar o PDF
-            gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao);
-        } else {
-            const errorData = await response.json(); // Para obter detalhes do erro
-            alert("Erro ao registrar os dados: " + (errorData.message || "Erro desconhecido"));
-        }
-
-    } catch (error) {
-        console.error("Erro ao enviar os dados:", error);
-        alert("Erro na conexão com o servidor: " + error.message);
-    }
-}
-
-function formatarReais(valor) {
-    return valor.replace('.', ',');
+    return true;
 }
 
 async function enviarDadosEgerarPDF() {
@@ -445,7 +404,6 @@ async function enviarDadosEgerarPDF() {
     const produtos = [];
     const quantidade = [];
     const totalDescontode40 = [];
-    const descontoSelecionado = tipoOpcao; // Definido antes da verificação
 
     document.querySelectorAll('.crud-section').forEach(section => {
         const codigoProduto = section.querySelector('.codigo-produto').value.trim();
@@ -457,10 +415,10 @@ async function enviarDadosEgerarPDF() {
             return;
         }
 
-        if (descontoSelecionado === 'brinde') {
+        if (tipoOpcao === 'brinde') {
             const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
             if (valorBruto * parseInt(quantidadeProduto) > 200) {
-                alert("Um ou mais produtos ultrapassaram o limite de R$50,00! Dados não enviados.");
+                alert("Um ou mais produtos ultrapassaram o limite de R$200,00 para brinde! Dados não enviados.");
                 return;
             }
         }
@@ -476,15 +434,10 @@ async function enviarDadosEgerarPDF() {
     }
 
     const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
-    const limiteDescontoAssistente = 1000;
-    const limiteDescontoGerente = 30;
 
-    if (cargo.toLowerCase() === 'assistente' && parseFloat(totalDesconto) > limiteDescontoAssistente) {
-        alert(`O total de desconto não pode ultrapassar R$ ${limiteDescontoAssistente.toFixed(2)} para assistente.`);
-        return;
-    }
-    if (cargo.toLowerCase() === 'gerente' && parseFloat(totalDesconto) > limiteDescontoGerente) {
-        alert(`O total de desconto não pode ultrapassar R$ ${limiteDescontoGerente.toFixed(2)} para gerente.`);
+    // Verificação do limite de desconto
+    if (!verificarLimiteDesconto(cargo, totalDesconto)) {
+        // Interrompe o envio se o desconto ultrapassar o limite
         return;
     }
 
