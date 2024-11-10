@@ -131,6 +131,83 @@
         -moz-appearance: textfield;
         appearance: textfield;
         }
+
+/* Caixa do nome do produto */
+.caixa-nome-produto {
+    display: inline-block;
+    background-color: #f9f9f9;
+    border: 2px solid #ccc;
+    padding: 12px;
+    border-radius: 5px;
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Transição para destaque do nome do produto */
+.caixa-nome-produto:empty {
+    background-color: #fff; /* Cor inicial */
+}
+
+.caixa-nome-produto:not(:empty) {
+    background-color: #d4f8d4; /* Fundo verde suave quando nome é exibido */
+    border-color: #6cbe6c; /* Borda mais forte */
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .options {
+        margin-right: 0;
+    }
+
+    .crud-section {
+        padding: 15px;
+    }
+
+    .caixa-nome-produto {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+/* Estilo para o label do nome do produto */
+label[for="nomeProduto"] {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 1rem;
+}
+
+/* Estilo para o span que exibe o nome do produto */
+.nome-produto {
+    display: inline-block;
+    background-color: #f0f8ff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 1rem;
+    color: #333;
+    font-weight: bold;
+    min-width: 250px;
+    text-align: center;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease;
+}
+
+.nome-produto:not(:empty) {
+    background-color: #ffffff;
+    border-color: #dae9dd;
+}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
@@ -190,15 +267,16 @@
         <div class="crud-section">
             <label>Código do Produto: </label>
             <input type="text" class="codigo-produto" onblur="buscarDadosProduto(this)">
+            <span id="nomeProduto" class="nome-produto">Nome do produto</span>
             <label>Quantidade: </label>
-            <input type="number" class="quantidade-produto"value="1" oninput="atualizarValores(this)">
+            <input type="number" class="quantidade-produto" value="1" oninput="atualizarValores(this)">
             <p><strong>Valor Bruto:</strong> R$ <span class="valor-bruto">0,00</span></p>
             <p><strong>Valor com Desconto (40%):</strong> R$ <span class="valor-desconto">0,00</span></p>
             <button type="button" class="delete-btn" onclick="removerCRUD(this)">🗑️</button>
         </div>
     </div>
     <button type="button" onclick="adicionarCRUD()">Adicionar Produto</button>
-    
+
     <div class="totais">
         <p>Total Bruto: R$ <span id="total-bruto">0,00</span></p>
         <p>Total com Desconto: R$ <span id="total-desconto">0,00</span></p>
@@ -210,20 +288,21 @@
 </footer>
 
 <script>
-        function aplicarMascaraCPF(input) {
+    function aplicarMascaraCPF(input) {
         let cpf = input.value.replace(/\D/g, ""); // Remove caracteres não numéricos
         cpf = cpf.replace(/^(\d{3})(\d)/, "$1.$2");
         cpf = cpf.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
         cpf = cpf.replace(/\.(\d{3})(\d)/, ".$1-$2");
         input.value = cpf;
     }
+
     async function buscarDadosCPF() {
         const cpf = document.getElementById('cpf').value;
-        const url = 'https://script.google.com/macros/s/AKfycbwG_GEZfzYBSDcGFLshq8_XDKxuEt7qSYh2ILGjRU7HewqkaD1JR2KmWJdLqJxW6ePL6A/exec';
+        const url = 'https://script.google.com/macros/s/AKfycbx8pW9UM8IpbrAfO_b-jwXmeHeTeXmAncqDVWG-O-8jK60rIP8WRFbgxDAXqBcit7pmpg/exec';
         try {
             const response = await fetch(`${url}?cpf=${cpf}`);
             const data = await response.json();
-            
+
             if (data.error) {
                 alert(data.error);
                 document.getElementById('dados-usuario').style.display = 'none';
@@ -233,127 +312,91 @@
                 document.getElementById('cargo').innerText = data.cargo || 'Não encontrado';
                 document.getElementById('perfumaria').innerText = data.perfumaria || 'Não encontrado';
                 document.getElementById('dataliberacao').innerText = data.dataliberacao || 'Não encontrado';
-                let dataLiberacao = new Date(data.dataliberacao); // Converte a string de data em um objeto Date
-document.getElementById('dataliberacao').innerText = 
-    !isNaN(dataLiberacao) ? 
-    dataLiberacao.toLocaleDateString('pt-BR') : // Formata a data para o formato brasileiro
-    'Não encontrado';
+                let dataLiberacao = new Date(data.dataliberacao);
+                document.getElementById('dataliberacao').innerText = 
+                    !isNaN(dataLiberacao) ? dataLiberacao.toLocaleDateString('pt-BR') : 'Não encontrado';
                 document.getElementById('dados-usuario').style.display = 'block';
             }
         } catch (error) {
             console.error('Erro ao buscar dados do CPF:', error);
         }
     }
+    let debounceTimeout;
+function buscarDadosProduto(input) {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(async function() {
+        const codigoProduto = input.value.trim();  
+        const url = 'https://script.google.com/macros/s/AKfycbx8pW9UM8IpbrAfO_b-jwXmeHeTeXmAncqDVWG-O-8jK60rIP8WRFbgxDAXqBcit7pmpg/exec';
 
-    async function buscarDadosProduto(input) {
-    const codigoProduto = input.value;
-    const url = 'https://script.google.com/macros/s/AKfycbzwrNi4-jiJiIxujM1vBkfhBOuz8VF6KTNLqAiXfvGDEZAHuAE7UYxRq8QcBHy0FG4_gA/exec';
-    try {
-        const response = await fetch(`${url}?codigo=${codigoProduto}`);
-        const data = await response.json();
+        try {
+            const response = await fetch(`${url}?codigo=${codigoProduto}`);
+            const data = await response.json();
+            
+            if (data.error) {
+                input.parentElement.querySelector('.nome-produto').innerText = 'Nome não disponível';
+                input.parentElement.querySelector('.valor-bruto').innerText = 'R$ 0,00';
+                input.parentElement.querySelector('.valor-desconto').innerText = 'R$ 0,00';
+            } else {
+                input.parentElement.querySelector('.nome-produto').innerText = data.nomeProduto || 'Nome não disponível';
+                input.parentElement.querySelector('.valor-bruto').innerText = formatarMoeda(data.valorBruto || 0);
+                input.parentElement.querySelector('.valor-desconto').innerText = formatarMoeda(data.valorDesconto || 0);
 
-        if (data.error) {
-            alert(data.error);
-            input.parentElement.querySelector('.valor-bruto').innerText = formatarMoeda(data.valorBruto);
-            input.parentElement.querySelector('.valor-desconto').innerText = '0,00';
-        } else {
-            input.parentElement.querySelector('.valor-bruto').innerText = formatarMoeda(data.valorBruto);
-            input.parentElement.querySelector('.valor-desconto').innerText = formatarMoeda(data.valorDesconto);
-            atualizarValores(input.parentElement.querySelector('.quantidade-produto')); // Atualiza os valores automaticamente
-            atualizarTotais();
+                atualizarValores(input.parentElement.querySelector('.quantidade-produto'));
+                atualizarTotais();
+            }
+        } catch (error) {
+            console.error('Erro ao buscar dados do produto:', error);
         }
-    } catch (error) {
-        console.error('Erro ao buscar dados do produto:', error);
-    }
+    }, 500);  // 500ms de delay
 }
 
+
+    function buscarProdutoManual(button) {
+        const codigoProduto = button.closest('.crud-section').querySelector('.codigo-produto').value;
+        buscarDadosProduto({ value: codigoProduto });
+    }
+
     function formatarMoeda(valor) {
-        return (valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
     }
 
     function atualizarValores(input) {
-    const container = input.parentElement;
+        const container = input.parentElement;
+        const valorUnitarioBruto = parseFloat(container.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
+        const quantidade = parseInt(container.querySelector('.quantidade-produto').value.trim()) || 0;
 
-    // Obtendo o valor unitário bruto (ex: R$100,00) e garantindo que seja numérico
-    const valorUnitarioBruto = parseFloat(container.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
-    // Verifique se o valor unitário está correto
-    console.log("Valor Unitário Bruto:", valorUnitarioBruto);
+        let valorBrutoTotal = valorUnitarioBruto * quantidade;
 
-    // Obtendo a quantidade do produto e garantindo que seja um número
-    const quantidade = parseInt(container.querySelector('.quantidade-produto').value.trim()) || 0;
-    // Verifique se a quantidade está correta
-    console.log("Quantidade:", quantidade);
+        const descontoSelecionado = document.querySelector('input[name="opcao"]:checked').value;
+        let valorComDesconto;
+        if (descontoSelecionado === 'desconto') {
+            valorComDesconto = valorBrutoTotal * 0.6;
+        } else if (descontoSelecionado === 'brinde') {
+            valorComDesconto = 0;
+        } else {
+            valorComDesconto = valorBrutoTotal;
+        }
 
-    // Cálculo do valor bruto total (valor unitário * quantidade)
-    let valorBrutoTotal = valorUnitarioBruto * quantidade;
-    console.log("Valor Bruto Total:", valorBrutoTotal);
-
-    // Verificando qual tipo de desconto foi selecionado
-    const descontoSelecionado = document.querySelector('input[name="opcao"]:checked').value;
-
-    let valorComDesconto;
-    // Lógica para aplicar desconto ou não
-    if (descontoSelecionado === 'desconto') {
-        valorComDesconto = valorBrutoTotal * 0.6; // Aplicando 40% de desconto
-    } else if (descontoSelecionado === 'brinde') {
-        valorComDesconto = 0; // Zero para brinde
-    } else {
-        valorComDesconto = valorBrutoTotal; // Sem desconto
+        container.querySelector('.valor-bruto').innerText = formatarMoeda(valorBrutoTotal);
+        container.querySelector('.valor-desconto').innerText = formatarMoeda(valorComDesconto);
+        atualizarTotais();
     }
 
-    // Atualizando o valor bruto total na interface
-    container.querySelector('.valor-bruto').innerText = formatarMoeda(valorBrutoTotal);
-    // Atualizando o valor com desconto na interface
-    container.querySelector('.valor-desconto').innerText = formatarMoeda(valorComDesconto);
+    function atualizarTotais() {
+        let totalBruto = 0;
+        let totalDesconto = 0;
 
-    // Atualiza os totais de todos os produtos
-    atualizarTotais();
-}
+        const sections = document.querySelectorAll('.crud-section');
+        sections.forEach((section) => {
+            const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
+            const valorComDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
 
-// Função para formatar os valores monetários
-function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
-}
+            totalBruto += valorBruto;
+            totalDesconto += valorComDesconto;
+        });
 
-// Função para formatar os valores monetários
-function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace('R$', '').trim();
-}
-
-function atualizarTotais() {
-    let totalBruto = 0;
-    let totalDesconto = 0;
-
-    // Coletando todos os containers de produto
-    const sections = document.querySelectorAll('.crud-section');
-
-    // Iterando por cada produto
-    sections.forEach(section => {
-        const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
-        const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.').replace('R$ ', '').trim()) || 0;
-
-        totalBruto += valorBruto;
-        totalDesconto += valorDesconto;
-    });
-
-    // Exibindo os totais na interface
-    document.getElementById('total-bruto').innerText = formatarMoeda(totalBruto);
-    document.getElementById('total-desconto').innerText = formatarMoeda(totalDesconto);
-}
-    function adicionarCRUD() {
-        const crudContainer = document.getElementById('crud-container');
-        const newSection = document.createElement('div');
-        newSection.classList.add('crud-section');
-        newSection.innerHTML = `
-            <label>Código do Produto: </label>
-            <input type="text" class="codigo-produto" onblur="buscarDadosProduto(this)">
-            <label>Quantidade: </label>
-            <input type="number" class="quantidade-produto" min="1" value="1" oninput="atualizarValores(this)">
-            <p><strong>Valor Bruto:</strong> R$ <span class="valor-bruto">0,00</span></p>
-            <p><strong>Valor com Desconto (40%):</strong> R$ <span class="valor-desconto">0,00</span></p>
-            <button type="button" class="delete-btn" onclick="removerCRUD(this)">🗑️</button>
-        `;
-        crudContainer.appendChild(newSection);
+        document.getElementById('total-bruto').innerText = formatarMoeda(totalBruto);
+        document.getElementById('total-desconto').innerText = formatarMoeda(totalDesconto);
     }
 
     function removerCRUD(button) {
@@ -362,6 +405,22 @@ function atualizarTotais() {
         atualizarTotais();
     }
 
+    function adicionarCRUD() {
+        const crudContainer = document.getElementById('crud-container');
+        const newCrudSection = document.createElement('div');
+        newCrudSection.classList.add('crud-section');
+        newCrudSection.innerHTML = `
+            <label>Código do Produto: </label>
+            <input type="text" class="codigo-produto" onblur="buscarDadosProduto(this)">
+            <span class="nome-produto">Nome não disponível</span>
+            <label>Quantidade: </label>
+            <input type="number" class="quantidade-produto" value="1" oninput="atualizarValores(this)">
+            <p><strong>Valor Bruto:</strong> R$ <span class="valor-bruto">0,00</span></p>
+            <p><strong>Valor com Desconto (40%):</strong> R$ <span class="valor-desconto">0,00</span></p>
+            <button type="button" class="delete-btn" onclick="removerCRUD(this)">🗑️</button>
+        `;
+        crudContainer.appendChild(newCrudSection);
+    }
 
 // Defina os limites de desconto para cada cargo em um objeto
 const limitesDesconto = {
