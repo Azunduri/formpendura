@@ -269,6 +269,14 @@ label[for="nomeProduto"] {
 </footer>
 
 <script>
+        // Função de debounce
+        function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
     function aplicarMascaraCPF(input) {
         let cpf = input.value.replace(/\D/g, ""); // Remove caracteres não numéricos
         cpf = cpf.replace(/^(\d{3})(\d)/, "$1.$2");
@@ -553,63 +561,91 @@ async function enviarDadosEgerarPDF() {
     }
 }
 
+
 function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text("Formulário de Pendura", 14, 22);
+            const pageWidth = doc.internal.pageSize.width; // Largura da página
 
-    doc.setFontSize(12);
-    doc.text(`CPF: ${cpf}`, 14, 40);
-    doc.text(`Nome: ${nome}`, 14, 50);
-    doc.text(`Loja: ${loja}`, 14, 60);
-    doc.text(`Cargo: ${cargo}`, 14, 70);
+            // Título centralizado
+            const titleWidth = doc.getTextWidth("Formulário de Pendura");
+            doc.setFontSize(18);
+            doc.text("Formulário de Pendura", (pageWidth - titleWidth) / 2, 22);
 
-    let yOffset = 80;
-    produtos.forEach((codigoProduto, index) => {
-        const quantidadeProduto = quantidade[index];
-        const valorDesconto = totalDescontode40[index].toFixed(2).replace('.', ',');
+            doc.setFontSize(12);
+            doc.text(`CPF: ${cpf}`, 14, 40);
+            doc.text(`Nome: ${nome}`, 14, 50);
+            doc.text(`Loja: ${loja}`, 14, 60);
+            doc.text(`Cargo: ${cargo}`, 14, 70);
 
-        doc.text(`Produto: ${codigoProduto}, Quantidade: ${quantidadeProduto}, Valor com Desconto: R$ ${valorDesconto}`, 14, yOffset);
-        yOffset += 10;
-    });
+            let yOffset = 80;
 
-    const valorDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
-    let declaracaoTexto;
+            // Cabeçalho da tabela de produtos com bordas arredondadas
+            doc.setFillColor(0, 0, 0); // Cor de fundo da tabela (preto)
+            doc.setTextColor(255, 255, 255); // Cor do texto (branco)
+            doc.setFontSize(12);
+            doc.rect(14, yOffset - 5, 180, 10, 'FD'); // Retângulo para o cabeçalho da tabela
+            doc.text("Produto", 16, yOffset);
+            doc.text("Quantidade", 90, yOffset);
+            doc.text("Valor com Desconto", 150, yOffset);
+            yOffset += 12;
 
-    if (tipoOpcao === 'desconto') {
-        declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, autorizo o desconto em folha no valor total de R$ ${formatarReais(valorDesconto)}.`;
-    } else if (tipoOpcao === 'brinde') {
-        declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, declaro o recebimento do meu brinde de aniversário no valor total de R$ ${formatarReais(valorDesconto)}.`;
-    }
+            // Produtos com valores
+            doc.setTextColor(0, 0, 0); // Cor do texto (preto)
+            produtos.forEach((codigoProduto, index) => {
+                const quantidadeProduto = quantidade[index];
+                const valorDesconto = totalDescontode40[index].toFixed(2).replace('.', ',');
 
-    const textoDeclaracao = doc.splitTextToSize(declaracaoTexto, 190);
-    textoDeclaracao.forEach((linha) => {
-        doc.text(linha, 10, yOffset);
-        yOffset += 10;
-    });
+                // Desenhando as linhas da tabela com bordas arredondadas
+                doc.setFillColor(255, 255, 255); // Cor de fundo branca para as células
+                doc.rect(14, yOffset - 5, 180, 10, 'FD');
+                doc.text(codigoProduto, 16, yOffset);
+                doc.text(`${quantidadeProduto}`, 90, yOffset);
+                doc.text(`R$ ${valorDesconto}`, 150, yOffset);
+                yOffset += 12;
+            });
 
-    const totalBruto = valorDesconto.replace('.', ',');
-    doc.text(`Total Bruto: R$ ${totalBruto}`, 14, yOffset);
-    yOffset += 10;
-    doc.text(`Total com Desconto: R$ ${formatarReais(valorDesconto)}`, 14, yOffset);
-    yOffset += 10;
+            const valorDescontoTotal = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
+            let declaracaoTexto;
 
-    const linhaAssinaturaY = yOffset + 20;
-    doc.text("____________________________", 10, linhaAssinaturaY);
-    doc.text(`Assinatura: ${nome}`, 10, linhaAssinaturaY + 5);
+            if (tipoOpcao === 'desconto') {
+                declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, autorizo o desconto em folha no valor total de R$ ${formatarReais(valorDescontoTotal)}.`;
+            } else if (tipoOpcao === 'brinde') {
+                declaracaoTexto = `Eu, ${nome}, CPF: ${cpf}, declaro o recebimento do meu brinde de aniversário no valor total de R$ ${formatarReais(valorDescontoTotal)}.`;
+            }
 
-    const dataAtual = new Date();
-    const dataFormatada = dataAtual.toLocaleString('pt-BR');
-    doc.text(`Data e Horário: ${dataFormatada}`, 10, linhaAssinaturaY + 15);
+            // Quebra e exibe o texto da declaração
+            const textoDeclaracao = doc.splitTextToSize(declaracaoTexto, 180);
+            textoDeclaracao.forEach((linha) => {
+                doc.text(linha, 14, yOffset);
+                yOffset += 10;
+            });
 
-    doc.save('formulario_pendura_' + nome.replace(/\s+/g, '_') + '.pdf');
-}
+            // Total Bruto e Total com Desconto
+            doc.text(`Total Bruto: R$ ${formatarReais(valorDescontoTotal)}`, 14, yOffset);
+            yOffset += 10;
+            doc.text(`Total com Desconto: R$ ${formatarReais(valorDescontoTotal)}`, 14, yOffset);
+            yOffset += 10;
 
-function formatarReais(valor) {
-    return valor.replace('.', ',');
-}
+            // Linha de assinatura centralizada
+            const assinaturaWidth = doc.getTextWidth("____________________________");
+            const linhaAssinaturaY = yOffset + 20;
+            doc.text("____________________________", (pageWidth - assinaturaWidth) / 2, linhaAssinaturaY);
+            doc.text(`Assinatura: ${nome}`, (pageWidth - doc.getTextWidth(`Assinatura: ${nome}`)) / 2, linhaAssinaturaY + 5);
+
+            // Data e horário
+            const dataAtual = new Date();
+            const dataFormatada = dataAtual.toLocaleString('pt-BR');
+            doc.text(`Data e Horário: ${dataFormatada}`, 14, linhaAssinaturaY + 15);
+
+            // Salvar o PDF
+            doc.save('formulario_pendura_' + nome.replace(/\s+/g, '_') + '.pdf');
+        }
+
+        function formatarReais(valor) {
+            return valor.replace('.', ',');
+        }
 </script>
 </body>
 </html>
