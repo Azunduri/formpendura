@@ -695,8 +695,7 @@ function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDe
     doc.setFontSize(12);
     doc.rect(14, yOffset - 5, 180, 10, 'FD'); // Retângulo para o cabeçalho da tabela
     doc.text("Código", 16, yOffset);
-    doc.text("Nome", 70, yOffset); // A posição do nome do produto foi ajustada
-    doc.text("Quantidade", 110, yOffset); // A posição da quantidade foi ajustada
+    doc.text("Quantidade", 115, yOffset); // A posição da quantidade foi ajustada
     doc.text("Valor com Desconto", 150, yOffset); // A posição do valor foi ajustada
     yOffset += 12;
 
@@ -711,8 +710,7 @@ function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDe
         doc.setFillColor(255, 255, 255); // Cor de fundo branca para as células
         doc.rect(14, yOffset - 5, 180, 10, 'FD');
         doc.text(codigoProduto, 16, yOffset);
-        doc.text(nomeProduto, 70, yOffset);
-        doc.text(`${quantidadeProduto}`, 110, yOffset);
+        doc.text(`${quantidadeProduto}`, 115, yOffset);
         doc.text(`R$ ${valorDesconto}`, 150, yOffset);
         yOffset += 12;
     });
