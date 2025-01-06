@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulário de Pendura</title>
+    
     <style>
         /* Estilo do corpo */
         body {
@@ -297,7 +298,7 @@ ul.btn-adicionar li:before {
 }
 
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -561,77 +562,81 @@ function verificarLimiteDesconto(cargo, totalDesconto) {
     return true;
 }
 async function enviarDadosEgerarPDF() {
-    const cpf = document.getElementById('cpf').value.trim();
-    const nome = document.getElementById('nome').innerText;
-    const loja = document.getElementById('loja').innerText;
-    const cargo = document.getElementById('cargo').innerText;
-    const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão';
-    const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
+    try {
+        const cpf = document.getElementById('cpf').value.trim();
+        const nome = document.getElementById('nome').innerText;
+        const loja = document.getElementById('loja').innerText;
+        const cargo = document.getElementById('cargo').innerText;
+        const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão';
+        const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
 
-    const produtos = [];
-    const quantidade = [];
-    const totalDescontode40 = [];
+        console.log("Dados recebidos:", { cpf, nome, loja, cargo, tipoOpcao, mes });
 
-    // Percorre cada produto inserido
-    document.querySelectorAll('.crud-section').forEach(section => {
-        const codigoProduto = section.querySelector('.codigo-produto').value.trim();
-        const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
-        const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.'));
+        const produtos = [];
+        const quantidade = [];
+        const totalDescontode40 = [];
 
-        if (!codigoProduto) {
-            alert("Por favor, preencha o código do produto.");
+        // Percorre cada produto inserido
+        document.querySelectorAll('.crud-section').forEach(section => {
+            const codigoProduto = section.querySelector('.codigo-produto').value.trim();
+            const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
+            const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.'));
+
+            console.log(`Produto: ${codigoProduto}, Quantidade: ${quantidadeProduto}, Valor Desconto: ${valorDesconto}`);
+
+            if (!codigoProduto) {
+                alert("Por favor, preencha o código do produto.");
+                return;
+            }
+
+            // Verificação para 'brinde'
+            if (tipoOpcao === 'brinde') {
+                const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
+                if (valorBruto * parseInt(quantidadeProduto) > 230) {
+                    alert("Um ou mais produtos ultrapassaram o limite de R$200,00 para brinde! Dados não enviados.");
+                    return;
+                }
+            }
+
+            produtos.push(codigoProduto);
+            quantidade.push(quantidadeProduto);
+            totalDescontode40.push(valorDesconto);
+        });
+
+        console.log("Produtos:", produtos);
+        console.log("Quantidade:", quantidade);
+        console.log("Total Desconto de 40:", totalDescontode40);
+
+        if (produtos.length === 0) {
+            alert("Por favor, preencha todos os campos.");
             return;
         }
 
-        // Verificação para 'brinde'
-        if (tipoOpcao === 'brinde') {
-            const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
-            if (valorBruto * parseInt(quantidadeProduto) > 230) {
-                alert("Um ou mais produtos ultrapassaram o limite de R$200,00 para brinde! Dados não enviados.");
-                return;
-            }
+        // Calculando o total de desconto
+        const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
+        console.log("Total de Desconto:", totalDesconto);
+
+        // Verificando o limite de desconto
+        if (!verificarLimiteDesconto(cargo, totalDesconto)) {
+            return; // Se o limite for ultrapassado, não envia os dados
         }
 
-        produtos.push(codigoProduto);
-        quantidade.push(quantidadeProduto);
-        totalDescontode40.push(valorDesconto);
-    });
+        // Monta o objeto com os dados a serem enviados
+        const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const dataParaEnviar = {
+            cpf,
+            nome,
+            cargo,
+            produtos: produtos.join(', '),
+            quantidade: quantidade.join(', '),
+            totalDescontode40: totalDesconto.replace('.', ','),
+            dataEnvio,
+            loja,
+            tipoOpcao,
+            mes
+        };
 
-    if (produtos.length === 0) {
-        alert("Por favor, preencha todos os campos.");
-        return;
-    }
-
-    // Calculando o total de desconto
-    const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
-
-    // Verificando o limite de desconto
-    if (!verificarLimiteDesconto(cargo, totalDesconto)) {
-        return; // Se o limite for ultrapassado, não envia os dados
-    }
-
-    // Se a verificação passar, continue com o envio dos dados
-    // Código para enviar dados e gerar PDF...
-
-    console.log("Desconto total:", totalDesconto); // Exibir para verificar
-
-    // Monta o objeto com os dados a serem enviados
-    const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const dataParaEnviar = {
-        cpf,
-        nome,
-        cargo,
-        produtos: produtos.join(', '),
-        quantidade: quantidade.join(', '),
-        totalDescontode40: totalDesconto.replace('.', ','),
-        dataEnvio,
-        loja,
-        tipoOpcao,
-        mes
-    };
-
-    // Envio dos dados para a API
-    try {
+        // Envio dos dados para a API
         const sheetMonkeyUrl = 'https://api.sheetmonkey.io/form/47VnTaUQ6XX3P2nRrm34rs';
         const response = await fetch(sheetMonkeyUrl, {
             method: 'POST',
@@ -647,11 +652,105 @@ async function enviarDadosEgerarPDF() {
             alert("Erro ao registrar os dados: " + (errorData.message || "Erro desconhecido"));
         }
     } catch (error) {
-        console.error("Erro ao enviar os dados:", error);
-        alert("Erro na conexão com o servidor: " + error.message);
+        console.error("Erro geral:", error);
+        alert("Ocorreu um erro inesperado. Verifique o console para mais detalhes.");
     }
 }
+async function enviarDadosEgerarPDF() {
+    try {
+        const cpf = document.getElementById('cpf').value.trim();
+        const nome = document.getElementById('nome').innerText;
+        const loja = document.getElementById('loja').innerText;
+        const cargo = document.getElementById('cargo').innerText;
+        const tipoOpcao = document.querySelector('input[name="opcao"]:checked')?.value || 'opção padrão';
+        const mes = new Date().toLocaleString('pt-BR', { month: 'long' });
 
+        console.log("Dados recebidos:", { cpf, nome, loja, cargo, tipoOpcao, mes });
+
+        const produtos = [];
+        const quantidade = [];
+        const totalDescontode40 = [];
+
+        // Percorre cada produto inserido
+        document.querySelectorAll('.crud-section').forEach(section => {
+            const codigoProduto = section.querySelector('.codigo-produto').value.trim();
+            const quantidadeProduto = section.querySelector('.quantidade-produto').value.trim();
+            const valorDesconto = parseFloat(section.querySelector('.valor-desconto').innerText.replace(',', '.'));
+
+            console.log(`Produto: ${codigoProduto}, Quantidade: ${quantidadeProduto}, Valor Desconto: ${valorDesconto}`);
+
+            if (!codigoProduto) {
+                alert("Por favor, preencha o código do produto.");
+                return;
+            }
+
+            // Verificação para 'brinde'
+            if (tipoOpcao === 'brinde') {
+                const valorBruto = parseFloat(section.querySelector('.valor-bruto').innerText.replace('R$ ', '').replace(',', '.'));
+                if (valorBruto * parseInt(quantidadeProduto) > 230) {
+                    alert("Um ou mais produtos ultrapassaram o limite de R$200,00 para brinde! Dados não enviados.");
+                    return;
+                }
+            }
+
+            produtos.push(codigoProduto);
+            quantidade.push(quantidadeProduto);
+            totalDescontode40.push(valorDesconto);
+        });
+
+        console.log("Produtos:", produtos);
+        console.log("Quantidade:", quantidade);
+        console.log("Total Desconto de 40:", totalDescontode40);
+
+        if (produtos.length === 0) {
+            alert("Por favor, preencha todos os campos.");
+            return;
+        }
+
+        // Calculando o total de desconto
+        const totalDesconto = totalDescontode40.reduce((a, b) => a + b, 0).toFixed(2);
+        console.log("Total de Desconto:", totalDesconto);
+
+        // Verificando o limite de desconto
+        if (!verificarLimiteDesconto(cargo, totalDesconto)) {
+            return; // Se o limite for ultrapassado, não envia os dados
+        }
+
+        // Monta o objeto com os dados a serem enviados
+        const dataEnvio = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+        const dataParaEnviar = {
+            cpf,
+            nome,
+            cargo,
+            produtos: produtos.join(', '),
+            quantidade: quantidade.join(', '),
+            totalDescontode40: totalDesconto.replace('.', ','),
+            dataEnvio,
+            loja,
+            tipoOpcao,
+            mes
+        };
+
+        // Envio dos dados para a API
+        const sheetMonkeyUrl = 'https://api.sheetmonkey.io/form/47VnTaUQ6XX3P2nRrm34rs';
+        const response = await fetch(sheetMonkeyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dataParaEnviar)
+        });
+
+        if (response.ok) {
+            alert("Dados registrados com sucesso!");
+            gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao);
+        } else {
+            const errorData = await response.json();
+            alert("Erro ao registrar os dados: " + (errorData.message || "Erro desconhecido"));
+        }
+    } catch (error) {
+        console.error("Erro geral:", error);
+        alert("Ocorreu um erro inesperado. Verifique o console para mais detalhes.");
+    }
+}
 
 function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDescontode40, tipoOpcao) {
     const { jsPDF } = window.jspdf;
@@ -751,15 +850,26 @@ function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDe
     const dataFormatada = dataAtual.toLocaleString('pt-BR');
     doc.text(`Data e Horário: ${dataFormatada}`, 14, linhaAssinaturaY + 15);
 
-    // Salvar o PDF
-    doc.save('formulario_pendura_' + nome.replace(/\s+/g, '_') + '.pdf');
+    // Exibindo o PDF
+    try {
+        const pdfOutput = doc.output('bloburl');
+        const win = window.open(pdfOutput, '_blank');
+        if (win) {
+            win.focus();
+        } else {
+            alert("Não foi possível abrir o PDF. Verifique as configurações de pop-ups.");
+        }
+    } catch (error) {
+        console.error("Erro ao gerar o PDF:", error);
+        alert("Ocorreu um erro ao gerar o PDF. Verifique o console para mais detalhes.");
+    }
 }
 
+// Função para formatar valores em reais
+function formatarReais(valor) {
+    return valor.toString().replace('.', ',');
+}
 
-
-        function formatarReais(valor) {
-            return valor.replace('.', ',');
-        }
 </script>
 </body>
 </html>
