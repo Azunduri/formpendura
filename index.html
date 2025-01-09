@@ -752,9 +752,9 @@ function gerarPDFDocumento(cpf, nome, loja, cargo, produtos, quantidade, totalDe
         doc.text("____________________________", (pageWidth - assinaturaWidth) / 2, linhaAssinaturaY);
         doc.text(`Assinatura: ${nome}`, (pageWidth - doc.getTextWidth(`Assinatura: ${nome}`)) / 2, linhaAssinaturaY + 5);
 
-        // Data e horário específicos
-        const dataEspecifica = new Date(2024, 10, 26, 15, 28, 25); // Mês é 10 porque janeiro é 0
-        const dataFormatada = dataEspecifica.toLocaleString('pt-BR');
+        // Data e horário atuais
+        const dataAtual = new Date();
+        const dataFormatada = dataAtual.toLocaleString('pt-BR');
         doc.text(`Data e Horário: ${dataFormatada}`, 14, linhaAssinaturaY + 15);
 
         // Exibindo PDF
