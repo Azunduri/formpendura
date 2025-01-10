@@ -1,136 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>INICIAL PENDURA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&family=Poppins:wght@600&display=swap" rel="stylesheet">
-  <!DOCTYPE html>
-  <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INICIAL PENDURA</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&family=Poppins:wght@600&display=swap" rel="stylesheet">
-    <style>
-      body {
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        font-family: 'Poppins', sans-serif;
-        background: linear-gradient(135deg, #ecf7ee, #e7e3e9); /* Gradiente de azul para roxo */
-        opacity: 0;
-        animation: fadeIn 1s ease-in-out forwards; /* Animação de fade-in */
-      }
-  
-      /* Animação de fade-in */
-      @keyframes fadeIn {
-        0% {
-          opacity: 0;
-        }
-        100% {
-          opacity: 1;
-        }
-      }
-  
-      .button-container {
-        flex: 1;
-        display: flex;
-        justify-content: space-around; /* Alinha os botões de maneira mais agradável */
-        padding: 20px;
-        opacity: 0;
-        animation: slideUp 1s ease-out forwards 0.5s; /* Animação de deslizamento para cima */
-      }
-  
-      /* Animação para os botões deslizarem para cima */
-      @keyframes slideUp {
-        0% {
-          opacity: 0;
-          transform: translateY(50px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-  
-      .button {
-        flex: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 2.5rem; /* Tamanho da fonte aumentado */
-        font-weight: 600;
-        color: #fff;
-        cursor: pointer;
-        padding: 20px 30px; /* Padding aumentado para ajustar ao tamanho do botão */
-        border-radius: 8px; /* Bordas arredondadas para um visual mais moderno */
-        transition: transform 0.4s ease, box-shadow 0.3s ease, background 0.3s ease, letter-spacing 0.2s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transform: scale(0);
-        animation: buttonAppear 1s ease-out forwards; /* Animação de "escala" ao aparecer */
-        letter-spacing: 3px; /* Aumenta o espaçamento entre as letras */
-        text-transform: uppercase; /* Deixa o texto em maiúsculas */
-        text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2); /* Sombra do texto para mais profundidade */
-      }
-  
-      /* Animação para os botões aparecerem com "escala" */
-      @keyframes buttonAppear {
-        0% {
-          transform: scale(0);
-        }
-        100% {
-          transform: scale(1);
-        }
-      }
-  
-      .button:nth-child(1) {
-        background: linear-gradient(135deg, #9abea2, #80e1f1); /* Azul claro */
-      }
-  
-      .button:nth-child(2) {
-        background: linear-gradient(135deg, #9abea2, #4db88b); /* Rosa claro */
-      }
-  
-      .button:hover {
-        transform: scale(1.1); /* Aumenta o botão no hover */
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3); /* Efeito de sombra mais forte */
-        background: linear-gradient(135deg, #dbe0e2, #8ecbf2); /* Efeito de hover com gradiente mais claro */
-        letter-spacing: 4px; /* Aumenta o espaçamento das letras ao passar o mouse */
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3); /* Aumenta a sombra do texto ao passar o mouse */
-      }
-  
-      .button:active {
-        transform: scale(0.98); /* Efeito de "pressionar" no botão */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-  
-      .button:focus {
-        outline: none;
-      }
-    
-
-    /* Remove o sublinhado do link */
-    a {
-      text-decoration: none;
-      display: flex; /* Faz o link ocupar toda a área */
-      height: 100%; /* Faz o link ocupar toda a altura do botão */
-      width: 100%; /* Faz o link ocupar toda a largura do botão */
+  <title>Site em Manutenção</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 2rem;
+      color: #d9534f;
+    }
+    p {
+      font-size: 1.2rem;
+      color: #5bc0de;
     }
   </style>
 </head>
 <body>
-  <div class="button-container">
-    <!-- Link para o primeiro botão -->
-    <a href="https://azunduri.github.io/PENDURALOJAS/" target="_blank">
-      <div class="button" id="btnLoja"><br>Pendura<br> Loja / ER</div>
-    </a>
-
-    <!-- Link para o segundo botão -->
-    <a href="https://azunduri.github.io/PENDURAESTOQUEHUB/" target="_blank">
-      <div class="button" id="btnEscritorio"><br>Pendura<br> Escritório / HUB</div>
-    </a>
+  <div class="container">
+    <h1>Site em Manutenção</h1>
+    <p>Estamos realizando melhorias no nosso site. Voltaremos em breve. Agradecemos a sua paciência!</p>
   </div>
 </body>
 </html>
